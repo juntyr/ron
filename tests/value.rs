@@ -74,7 +74,7 @@ fn unit() {
     use ron::error::{Error, ErrorCode, Position};
 
     assert_eq!("()".parse(), Ok(Value::Unit));
-    assert_eq!("Foo".parse(), Ok(Value::Unit));
+    assert_eq!("Foo".parse(), Ok(Value::String(String::from("Foo"))));
 
     assert_eq!(
         "".parse::<Value>(),
