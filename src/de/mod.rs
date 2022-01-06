@@ -24,6 +24,7 @@ mod value;
 pub struct Deserializer<'de> {
     bytes: Bytes<'de>,
     newtype_variant: bool,
+    any_newtype: bool,
 }
 
 impl<'de> Deserializer<'de> {
@@ -45,6 +46,7 @@ impl<'de> Deserializer<'de> {
         let mut deserializer = Deserializer {
             bytes: Bytes::new(input)?,
             newtype_variant: false,
+            any_newtype: false,
         };
 
         deserializer.bytes.exts |= options.default_extensions;
@@ -121,7 +123,12 @@ impl<'de> Deserializer<'de> {
         if id.is_ok() && bytes.peek() == Some(b':') {
             // first two arguments are technically incorrect, but ignored anyway
             self.deserialize_struct("", &[], visitor)
+        } else if !self.any_newtype {
+            // first argument is ignored
+            self.deserialize_tuple(0, visitor)
         } else {
+            self.any_newtype = true;
+
             let mut braces = 1;
             let mut comma = false;
             while braces > 0 {
@@ -151,6 +158,7 @@ impl<'de> Deserializer<'de> {
         }
     }
 }
+
 struct SingletonMap<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
     key: Option<&'a [u8]>,
@@ -184,8 +192,12 @@ impl<'de, 'a> de::MapAccess<'de> for SingletonMap<'a, 'de> {
     {
         self.de.bytes.skip_ws()?;
 
-        let res = seed.deserialize(&mut *self.de)?;
-        Ok(res)
+        let old_any_newtype = self.de.any_newtype;
+        self.de.any_newtype = true;
+        let res = seed.deserialize(&mut *self.de);
+        self.de.any_newtype = old_any_newtype;
+
+        res
     }
 }
 
