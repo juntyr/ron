@@ -48,7 +48,7 @@ fn test_value_newtype_struct_unnamed() {
     assert_eq!(
         value_deserialized,
         ron::Value::Seq(
-            vec![ron::Value::Number(ron::value::Number::from(-128)),]
+            vec![ron::Value::Number(ron::value::Number::from(-128i8)),]
                 .into_iter()
                 .collect()
         )
@@ -76,7 +76,7 @@ fn test_value_newtype_struct_named() {
         ron::Value::Map(
             vec![(
                 ron::Value::String(String::from("Newtype")),
-                ron::Value::Number(ron::value::Number::from(-128)),
+                ron::Value::Number(ron::value::Number::from(-128i8)),
             )]
             .into_iter()
             .collect()
@@ -113,7 +113,7 @@ fn test_value_struct_unnamed() {
         ron::Value::Map(
             vec![(
                 ron::Value::String(String::from("a")),
-                ron::Value::Number(ron::value::Number::from(42)),
+                ron::Value::Number(ron::value::Number::from(42u8)),
             )]
             .into_iter()
             .collect()
@@ -145,7 +145,7 @@ fn test_value_struct_named() {
                 ron::Value::Map(
                     vec![(
                         ron::Value::String(String::from("a")),
-                        ron::Value::Number(ron::value::Number::from(42)),
+                        ron::Value::Number(ron::value::Number::from(42u8)),
                     )]
                     .into_iter()
                     .collect()
@@ -220,7 +220,7 @@ fn test_value_tuple_struct_unnamed() {
     assert_eq!(
         value_deserialized,
         ron::Value::Seq(vec![
-            ron::Value::Number(ron::value::Number::from(42)),
+            ron::Value::Number(ron::value::Number::from(42u8)),
             ron::Value::Bool(false),
         ])
     );
@@ -248,7 +248,7 @@ fn test_value_tuple_struct_named() {
             vec![(
                 ron::Value::String(String::from("Tuple")),
                 ron::Value::Seq(vec![
-                    ron::Value::Number(ron::value::Number::from(42)),
+                    ron::Value::Number(ron::value::Number::from(42u8)),
                     ron::Value::Bool(false),
                 ]),
             )]
@@ -302,7 +302,7 @@ fn test_value_newtype_variant() {
         ron::Value::Map(
             vec![(
                 ron::Value::String(String::from("Newtype")),
-                ron::Value::Number(ron::value::Number::from(-42)),
+                ron::Value::Number(ron::value::Number::from(-42i8)),
             )]
             .into_iter()
             .collect()
@@ -330,7 +330,7 @@ fn test_value_tuple_variant() {
             vec![(
                 ron::Value::String(String::from("Tuple")),
                 ron::Value::Seq(vec![
-                    ron::Value::Number(ron::value::Number::from(-42)),
+                    ron::Value::Number(ron::value::Number::from(-42i8)),
                     ron::Value::Bool(true),
                 ]),
             )]
@@ -362,7 +362,7 @@ fn test_value_struct_variant() {
                 ron::Value::Map(
                     vec![(
                         ron::Value::String(String::from("a")),
-                        ron::Value::Number(ron::value::Number::from(24)),
+                        ron::Value::Number(ron::value::Number::from(24u8)),
                     )]
                     .into_iter()
                     .collect()

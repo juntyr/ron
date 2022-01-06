@@ -16,14 +16,14 @@ fn char() {
 #[test]
 fn map() {
     let mut map = Map::new();
-    map.insert(Value::Char('a'), Value::Number(Number::new(1)));
-    map.insert(Value::Char('b'), Value::Number(Number::new(2f64)));
+    map.insert(Value::Char('a'), Value::Number(Number::new(1u8)));
+    map.insert(Value::Char('b'), Value::Number(Number::new(2f32)));
     assert_eq!("{ 'a': 1, 'b': 2.0 }".parse(), Ok(Value::Map(map)));
 }
 
 #[test]
 fn number() {
-    assert_eq!("42".parse(), Ok(Value::Number(Number::new(42))));
+    assert_eq!("42".parse(), Ok(Value::Number(Number::new(42u8))));
     assert_eq!(
         "3.141592653589793".parse(),
         Ok(Value::Number(Number::new(f64::consts::PI)))
@@ -63,8 +63,8 @@ fn string() {
 #[test]
 fn seq() {
     let seq = vec![
-        Value::Number(Number::new(1)),
-        Value::Number(Number::new(2f64)),
+        Value::Number(Number::new(1u8)),
+        Value::Number(Number::new(2f32)),
     ];
     assert_eq!("[1, 2.0]".parse(), Ok(Value::Seq(seq)));
 }

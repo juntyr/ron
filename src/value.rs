@@ -1,10 +1,7 @@
 //! Value module.
 
 use serde::{
-    de::{
-        DeserializeOwned, DeserializeSeed, Deserializer, Error as SerdeError, MapAccess, SeqAccess,
-        Visitor,
-    },
+    de::{DeserializeOwned, DeserializeSeed, Deserializer, MapAccess, SeqAccess, Visitor},
     forward_to_deserialize_any, Deserialize, Serialize,
 };
 use std::{
@@ -141,27 +138,165 @@ type MapInner = std::collections::BTreeMap<Value, Value>;
 #[cfg(feature = "indexmap")]
 type MapInner = indexmap::IndexMap<Value, Value>;
 
-/// A wrapper for a number, which can be either `f64` or `i64`.
-#[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Eq, Hash, Ord)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub enum Number {
-    Integer(i64),
-    Float(Float),
+    F32(F32),
+    F64(F64),
+    I8(i8),
+    U8(u8),
+    I16(i16),
+    U16(u16),
+    I32(i32),
+    U32(u32),
+    I64(i64),
+    U64(u64),
+    #[cfg(feature = "integer128")]
+    I128(i128),
+    #[cfg(feature = "integer128")]
+    U128(u128),
 }
 
 /// A wrapper for `f64`, which guarantees that the inner value
-/// is finite and thus implements `Eq`, `Hash` and `Ord`.
+/// is a number and thus implements `Eq`, `Hash` and `Ord`.
 #[derive(Copy, Clone, Debug)]
-pub struct Float(f64);
+pub struct F64(f64);
 
-impl Float {
-    /// Construct a new `Float`.
+impl F64 {
+    /// Construct a new `F64`.
     pub fn new(v: f64) -> Self {
-        Float(v)
+        Self(v)
     }
 
-    /// Returns the wrapped float.
+    /// Returns the wrapped `f64`.
     pub fn get(self) -> f64 {
         self.0
+    }
+}
+
+/// Partial equality comparison
+/// In order to be able to use `Number` as a mapping key, NaN floating values
+/// wrapped in `F64` are equals to each other. It is not the case for
+/// underlying `f64` values itself.
+impl PartialEq for F64 {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.is_nan() && other.0.is_nan() || self.0 == other.0
+    }
+}
+
+/// Equality comparison
+/// In order to be able to use `Float` as a mapping key, NaN floating values
+/// wrapped in `F64` are equals to each other. It is not the case for
+/// underlying `f64` values itself.
+impl Eq for F64 {}
+
+impl Hash for F64 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.0.to_bits());
+    }
+}
+
+/// Partial ordering comparison
+/// In order to be able to use `Number` as a mapping key, NaN floating values
+/// wrapped in `F64` are equals to each other and are less then any other
+/// floating value. It is not the case for the underlying `f64` values themselves.
+/// ```
+/// use ron::value::Number;
+/// assert!(Number::new(std::f64::NAN) < Number::new(std::f64::NEG_INFINITY));
+/// assert_eq!(Number::new(std::f64::NAN), Number::new(std::f64::NAN));
+/// ```
+impl PartialOrd for F64 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Ordering comparison
+/// In order to be able to use `Number` as a mapping key, NaN floating values
+/// wrapped in `F64` are equals to each other and are less then any other
+/// floating value. It is not the case for the underlying `f64` values themselves.
+impl Ord for F64 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if let Some(ord) = self.0.partial_cmp(&other.0) {
+            return ord;
+        }
+
+        match (self.0.is_nan(), other.0.is_nan()) {
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
+            (_, _) /*(true, true)*/ => Ordering::Equal,
+        }
+    }
+}
+
+/// A wrapper for `f32`, which guarantees that the inner value
+/// is a number and thus implements `Eq`, `Hash` and `Ord`.
+#[derive(Copy, Clone, Debug)]
+pub struct F32(f32);
+
+impl F32 {
+    /// Construct a new `F32`.
+    pub fn new(v: f32) -> Self {
+        Self(v)
+    }
+
+    /// Returns the wrapped `f32`.
+    pub fn get(self) -> f32 {
+        self.0
+    }
+}
+
+/// Partial equality comparison
+/// In order to be able to use `Number` as a mapping key, NaN floating values
+/// wrapped in `F32` are equals to each other. It is not the case for
+/// underlying `f32` values itself.
+impl PartialEq for F32 {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.is_nan() && other.0.is_nan() || self.0 == other.0
+    }
+}
+
+/// Equality comparison
+/// In order to be able to use `F32` as a mapping key, NaN floating values
+/// wrapped in `F32` are equals to each other. It is not the case for
+/// underlying `f32` values itself.
+impl Eq for F32 {}
+
+impl Hash for F32 {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u32(self.0.to_bits());
+    }
+}
+
+/// Partial ordering comparison
+/// In order to be able to use `Number` as a mapping key, NaN floating values
+/// wrapped in `F32` are equals to each other and are less then any other
+/// floating value. It is not the case for the underlying `f32` values themselves.
+/// ```
+/// use ron::value::Number;
+/// assert!(Number::new(std::f32::NAN) < Number::new(std::f32::NEG_INFINITY));
+/// assert_eq!(Number::new(std::f32::NAN), Number::new(std::f32::NAN));
+/// ```
+impl PartialOrd for F32 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Ordering comparison
+/// In order to be able to use `Number` as a mapping key, NaN floating values
+/// wrapped in `F32` are equals to each other and are less then any other
+/// floating value. It is not the case for the underlying `f32` values themselves.
+impl Ord for F32 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if let Some(ord) = self.0.partial_cmp(&other.0) {
+            return ord;
+        }
+
+        match (self.0.is_nan(), other.0.is_nan()) {
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
+            (_, _) /*(true, true)*/ => Ordering::Equal,
+        }
     }
 }
 
@@ -170,157 +305,79 @@ impl Number {
     pub fn new(v: impl Into<Number>) -> Self {
         v.into()
     }
+}
 
-    /// Returns the `f64` representation of the number regardless of whether the number is stored
-    /// as a float or integer.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use ron::value::Number;
-    /// let i = Number::new(5);
-    /// let f = Number::new(2.0);
-    /// assert_eq!(i.into_f64(), 5.0);
-    /// assert_eq!(f.into_f64(), 2.0);
-    /// ```
-    pub fn into_f64(self) -> f64 {
-        self.map_to(|i| i as f64, |f| f)
-    }
-
-    /// If the `Number` is a float, return it. Otherwise return `None`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use ron::value::Number;
-    /// let i = Number::new(5);
-    /// let f = Number::new(2.0);
-    /// assert_eq!(i.as_f64(), None);
-    /// assert_eq!(f.as_f64(), Some(2.0));
-    /// ```
-    pub fn as_f64(self) -> Option<f64> {
-        self.map_to(|_| None, Some)
-    }
-
-    /// If the `Number` is an integer, return it. Otherwise return `None`.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use ron::value::Number;
-    /// let i = Number::new(5);
-    /// let f = Number::new(2.0);
-    /// assert_eq!(i.as_i64(), Some(5));
-    /// assert_eq!(f.as_i64(), None);
-    /// ```
-    pub fn as_i64(self) -> Option<i64> {
-        self.map_to(Some, |_| None)
-    }
-
-    /// Map this number to a single type using the appropriate closure.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// # use ron::value::Number;
-    /// let i = Number::new(5);
-    /// let f = Number::new(2.0);
-    /// assert!(i.map_to(|i| i > 3, |f| f > 3.0));
-    /// assert!(!f.map_to(|i| i > 3, |f| f > 3.0));
-    /// ```
-    pub fn map_to<T>(
-        self,
-        integer_fn: impl FnOnce(i64) -> T,
-        float_fn: impl FnOnce(f64) -> T,
-    ) -> T {
-        match self {
-            Number::Integer(i) => integer_fn(i),
-            Number::Float(Float(f)) => float_fn(f),
-        }
+impl From<f32> for Number {
+    fn from(f: f32) -> Number {
+        Number::F32(F32::new(f))
     }
 }
 
 impl From<f64> for Number {
     fn from(f: f64) -> Number {
-        Number::Float(Float(f))
+        Number::F64(F64::new(f))
     }
 }
 
-impl From<i64> for Number {
-    fn from(i: i64) -> Number {
-        Number::Integer(i)
+impl From<i8> for Number {
+    fn from(i: i8) -> Number {
+        Number::I8(i)
+    }
+}
+
+impl From<u8> for Number {
+    fn from(u: u8) -> Number {
+        Number::U8(u)
+    }
+}
+
+impl From<i16> for Number {
+    fn from(i: i16) -> Number {
+        Number::I16(i)
+    }
+}
+
+impl From<u16> for Number {
+    fn from(u: u16) -> Number {
+        Number::U16(u)
     }
 }
 
 impl From<i32> for Number {
     fn from(i: i32) -> Number {
-        Number::Integer(i64::from(i))
+        Number::I32(i)
     }
 }
 
-// The following number conversion checks if the integer fits losslessly into an i64, before
-// constructing a Number::Integer variant. If not, the conversion defaults to float.
+impl From<u32> for Number {
+    fn from(u: u32) -> Number {
+        Number::U32(u)
+    }
+}
+
+impl From<i64> for Number {
+    fn from(i: i64) -> Number {
+        Number::I64(i)
+    }
+}
 
 impl From<u64> for Number {
-    fn from(i: u64) -> Number {
-        if i <= std::i64::MAX as u64 {
-            Number::Integer(i as i64)
-        } else {
-            Number::new(i as f64)
-        }
+    fn from(u: u64) -> Number {
+        Number::U64(u)
     }
 }
 
-/// Partial equality comparison
-/// In order to be able to use `Number` as a mapping key, NaN floating values
-/// wrapped in `Float` are equals to each other. It is not the case for
-/// underlying `f64` values itself.
-impl PartialEq for Float {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.is_nan() && other.0.is_nan() || self.0 == other.0
+#[cfg(feature = "integer128")]
+impl From<i128> for Number {
+    fn from(i: i128) -> Number {
+        Number::I128(i)
     }
 }
 
-/// Equality comparison
-/// In order to be able to use `Float` as a mapping key, NaN floating values
-/// wrapped in `Float` are equals to each other. It is not the case for
-/// underlying `f64` values itself.
-impl Eq for Float {}
-
-impl Hash for Float {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write_u64(self.0 as u64);
-    }
-}
-
-/// Partial ordering comparison
-/// In order to be able to use `Number` as a mapping key, NaN floating values
-/// wrapped in `Number` are equals to each other and are less then any other
-/// floating value. It is not the case for the underlying `f64` values themselves.
-/// ```
-/// use ron::value::Number;
-/// assert!(Number::new(std::f64::NAN) < Number::new(std::f64::NEG_INFINITY));
-/// assert_eq!(Number::new(std::f64::NAN), Number::new(std::f64::NAN));
-/// ```
-impl PartialOrd for Float {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self.0.is_nan(), other.0.is_nan()) {
-            (true, true) => Some(Ordering::Equal),
-            (true, false) => Some(Ordering::Less),
-            (false, true) => Some(Ordering::Greater),
-            _ => self.0.partial_cmp(&other.0),
-        }
-    }
-}
-
-/// Ordering comparison
-/// In order to be able to use `Float` as a mapping key, NaN floating values
-/// wrapped in `Float` are equals to each other and are less then any other
-/// floating value. It is not the case for underlying `f64` values itself. See
-/// the `PartialEq` implementation.
-impl Ord for Float {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).expect("Bug: Contract violation")
+#[cfg(feature = "integer128")]
+impl From<u128> for Number {
+    fn from(u: u128) -> Number {
+        Number::U128(u)
     }
 }
 
@@ -354,8 +411,20 @@ impl Value {
             Self::Bool(b) => Unexpected::Bool(*b),
             Self::Char(c) => Unexpected::Char(*c),
             Self::Map(_) => Unexpected::Map,
-            Self::Number(Number::Integer(i)) => Unexpected::Signed(*i),
-            Self::Number(Number::Float(f)) => Unexpected::Float(f.0),
+            Self::Number(Number::F32(f)) => Unexpected::Float(f.get().into()),
+            Self::Number(Number::F64(f)) => Unexpected::Float(f.get()),
+            Self::Number(Number::I8(i)) => Unexpected::Signed((*i).into()),
+            Self::Number(Number::I16(i)) => Unexpected::Signed((*i).into()),
+            Self::Number(Number::I32(i)) => Unexpected::Signed((*i).into()),
+            Self::Number(Number::I64(i)) => Unexpected::Signed(*i),
+            #[cfg(feature = "integer128")]
+            Self::Number(Number::I128(i)) => Unexpected::Signed((*i) as i64),
+            Self::Number(Number::U8(u)) => Unexpected::Unsigned((*u).into()),
+            Self::Number(Number::U16(u)) => Unexpected::Unsigned((*u).into()),
+            Self::Number(Number::U32(u)) => Unexpected::Unsigned((*u).into()),
+            Self::Number(Number::U64(u)) => Unexpected::Unsigned(*u),
+            #[cfg(feature = "integer128")]
+            Self::Number(Number::U128(u)) => Unexpected::Unsigned((*u) as u64),
             Self::Option(_) => Unexpected::Option,
             Self::String(s) => Unexpected::Str(s),
             Self::Seq(_) => Unexpected::Seq,
@@ -370,9 +439,15 @@ impl<'de> Deserializer<'de> for Value {
     type Error = RonError;
 
     forward_to_deserialize_any! {
-        bool f32 f64 char str string bytes
+        bool f32 f64 i8 i16 i32 i64 u8 u16 u32 u64
+        char str string bytes
         byte_buf option unit seq tuple
         map identifier ignored_any
+    }
+
+    #[cfg(feature = "integer128")]
+    forward_to_deserialize_any! {
+        i128 u128
     }
 
     fn deserialize_newtype_struct<V>(mut self, name: &'static str, visitor: V) -> Result<V::Value>
@@ -514,8 +589,20 @@ impl<'de> Deserializer<'de> for Value {
                 keys: m.keys().cloned().rev().collect(),
                 values: m.values().cloned().rev().collect(),
             }),
-            Value::Number(Number::Float(ref f)) => visitor.visit_f64(f.get()),
-            Value::Number(Number::Integer(i)) => visitor.visit_i64(i),
+            Value::Number(Number::F32(f)) => visitor.visit_f32(f.get()),
+            Value::Number(Number::F64(f)) => visitor.visit_f64(f.get()),
+            Value::Number(Number::I8(i)) => visitor.visit_i8(i),
+            Value::Number(Number::I16(i)) => visitor.visit_i16(i),
+            Value::Number(Number::I32(i)) => visitor.visit_i32(i),
+            Value::Number(Number::I64(i)) => visitor.visit_i64(i),
+            #[cfg(feature = "integer128")]
+            Value::Number(Number::I128(i)) => visitor.visit_i128(i),
+            Value::Number(Number::U8(u)) => visitor.visit_u8(u),
+            Value::Number(Number::U16(u)) => visitor.visit_u16(u),
+            Value::Number(Number::U32(u)) => visitor.visit_u32(u),
+            Value::Number(Number::U64(u)) => visitor.visit_u64(u),
+            #[cfg(feature = "integer128")]
+            Value::Number(Number::U128(u)) => visitor.visit_u128(u),
             Value::Option(Some(o)) => visitor.visit_some(*o),
             Value::Option(None) => visitor.visit_none(),
             Value::String(s) => visitor.visit_string(s),
@@ -524,68 +611,6 @@ impl<'de> Deserializer<'de> for Value {
                 visitor.visit_seq(Seq { seq })
             }
             Value::Unit => visitor.visit_unit(),
-        }
-    }
-
-    fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_i64(visitor)
-    }
-
-    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        match self {
-            Value::Number(Number::Integer(i)) => visitor.visit_i64(i),
-            v => Err(RonError::custom(format!("Expected a number, got {:?}", v))),
-        }
-    }
-
-    fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_u64(visitor)
-    }
-
-    fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_u64(visitor)
-    }
-
-    fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        self.deserialize_u64(visitor)
-    }
-
-    fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: Visitor<'de>,
-    {
-        match self {
-            Value::Number(Number::Integer(i)) => visitor.visit_u64(i as u64),
-            v => Err(RonError::custom(format!("Expected a number, got {:?}", v))),
         }
     }
 }
