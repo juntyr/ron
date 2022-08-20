@@ -6,6 +6,7 @@ bitflags::bitflags! {
         const UNWRAP_NEWTYPES = 0x1;
         const IMPLICIT_SOME = 0x2;
         const UNWRAP_VARIANT_NEWTYPES = 0x4;
+        const EXPLICIT_ENUM = 0x8;
     }
 }
 
@@ -16,6 +17,7 @@ impl Extensions {
             b"unwrap_newtypes" => Some(Extensions::UNWRAP_NEWTYPES),
             b"implicit_some" => Some(Extensions::IMPLICIT_SOME),
             b"unwrap_variant_newtypes" => Some(Extensions::UNWRAP_VARIANT_NEWTYPES),
+            b"explicit_enum" => Some(Extensions::EXPLICIT_ENUM),
             _ => None,
         }
     }

@@ -568,6 +568,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     {
         self.newtype_variant = false;
 
+        
+
         match visitor.visit_enum(Enum::new(self)) {
             Ok(value) => Ok(value),
             Err(Error::NoSuchEnumVariant {

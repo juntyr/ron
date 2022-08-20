@@ -376,6 +376,12 @@ impl<W: io::Write> Serializer<W> {
         Ok(())
     }
 
+    fn write_explicit_enum_identifier(&mut self, name: &str) -> io::Result<()> {
+        self.write_identifier(name)?;
+        self.output.write_all(b"::")?;
+        Ok(())
+    }
+
     fn struct_names(&self) -> bool {
         self.pretty
             .as_ref()
@@ -520,7 +526,16 @@ impl<'a, W: io::Write> ser::Serializer for &'a mut Serializer<W> {
         }
     }
 
-    fn serialize_unit_variant(self, _: &'static str, _: u32, variant: &'static str) -> Result<()> {
+    fn serialize_unit_variant(
+        self,
+        name: &'static str,
+        _: u32,
+        variant: &'static str,
+    ) -> Result<()> {
+        if self.extensions().contains(Extensions::EXPLICIT_ENUM) {
+            self.write_explicit_enum_identifier(name)?;
+        }
+
         self.write_identifier(variant)?;
 
         Ok(())
@@ -548,7 +563,7 @@ impl<'a, W: io::Write> ser::Serializer for &'a mut Serializer<W> {
 
     fn serialize_newtype_variant<T>(
         self,
-        _: &'static str,
+        name: &'static str,
         _: u32,
         variant: &'static str,
         value: &T,
@@ -556,6 +571,10 @@ impl<'a, W: io::Write> ser::Serializer for &'a mut Serializer<W> {
     where
         T: ?Sized + Serialize,
     {
+        if self.extensions().contains(Extensions::EXPLICIT_ENUM) {
+            self.write_explicit_enum_identifier(name)?;
+        }
+
         self.write_identifier(variant)?;
         self.output.write_all(b"(")?;
 
@@ -630,12 +649,16 @@ impl<'a, W: io::Write> ser::Serializer for &'a mut Serializer<W> {
 
     fn serialize_tuple_variant(
         self,
-        _: &'static str,
+        name: &'static str,
         _: u32,
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeTupleVariant> {
         self.newtype_variant = false;
+
+        if self.extensions().contains(Extensions::EXPLICIT_ENUM) {
+            self.write_explicit_enum_identifier(name)?;
+        }
 
         self.write_identifier(variant)?;
         self.output.write_all(b"(")?;
@@ -694,12 +717,16 @@ impl<'a, W: io::Write> ser::Serializer for &'a mut Serializer<W> {
 
     fn serialize_struct_variant(
         self,
-        _: &'static str,
+        name: &'static str,
         _: u32,
         variant: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStructVariant> {
         self.newtype_variant = false;
+
+        if self.extensions().contains(Extensions::EXPLICIT_ENUM) {
+            self.write_explicit_enum_identifier(name)?;
+        }
 
         self.write_identifier(variant)?;
         self.output.write_all(b"(")?;
