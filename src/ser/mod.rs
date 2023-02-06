@@ -570,6 +570,9 @@ impl<'a, W: io::Write> ser::Serializer for &'a mut Serializer<W> {
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<()> {
+        println!("{:?}", v);
+        println!("{:?}", BASE64_ENGINE.encode(v));
+
         self.serialize_str(BASE64_ENGINE.encode(v).as_str())
     }
 

@@ -407,6 +407,8 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
             BASE64_ENGINE.decode(base64_str)
         };
 
+        println!("{:?}", res);
+
         match res {
             Ok(byte_buf) => visitor.visit_byte_buf(byte_buf),
             Err(err) => Err(Error::Base64Error(err)),
