@@ -1,6 +1,6 @@
 //! Roundtrip serde Options module.
 
-use std::io;
+use std::{fmt, io};
 
 use serde::{de, ser};
 use serde_derive::{Deserialize, Serialize};
@@ -9,7 +9,7 @@ use crate::{
     de::Deserializer,
     error::{Result, SpannedResult},
     extensions::Extensions,
-    ser::{PrettyConfig, Serializer},
+    ser::{FmtWrite, PrettyConfig, Serializer},
 };
 
 /// Roundtrip serde options.
@@ -187,6 +187,35 @@ impl Options {
         value.serialize(&mut s)
     }
 
+    /// Serializes `value` into `writer`.
+    ///
+    /// This function does not generate any newlines or nice formatting;
+    /// if you want that, you can use
+    /// [`to_utf8_writer_pretty`][Self::to_utf8_writer_pretty] instead.
+    pub fn to_utf8_writer<W, T>(&self, writer: W, value: &T) -> Result<()>
+    where
+        W: fmt::Write,
+        T: ?Sized + ser::Serialize,
+    {
+        let mut s = Serializer::with_options(FmtWrite::from(writer), None, self.clone())?;
+        value.serialize(&mut s)
+    }
+
+    /// Serializes `value` into `writer` in a pretty way.
+    pub fn to_utf8_writer_pretty<W, T>(
+        &self,
+        writer: W,
+        value: &T,
+        config: PrettyConfig,
+    ) -> Result<()>
+    where
+        W: fmt::Write,
+        T: ?Sized + ser::Serialize,
+    {
+        let mut s = Serializer::with_options(FmtWrite::from(writer), Some(config), self.clone())?;
+        value.serialize(&mut s)
+    }
+
     /// Serializes `value` and returns it as string.
     ///
     /// This function does not generate any newlines or nice formatting;
@@ -196,10 +225,9 @@ impl Options {
     where
         T: ?Sized + ser::Serialize,
     {
-        let mut output = Vec::new();
-        let mut s = Serializer::with_options(&mut output, None, self.clone())?;
-        value.serialize(&mut s)?;
-        Ok(String::from_utf8(output).expect("Ron should be utf-8"))
+        let mut output = String::new();
+        self.to_utf8_writer(&mut output, value)?;
+        Ok(output)
     }
 
     /// Serializes `value` in the recommended RON layout in a pretty way.
@@ -207,9 +235,8 @@ impl Options {
     where
         T: ?Sized + ser::Serialize,
     {
-        let mut output = Vec::new();
-        let mut s = Serializer::with_options(&mut output, Some(config), self.clone())?;
-        value.serialize(&mut s)?;
-        Ok(String::from_utf8(output).expect("Ron should be utf-8"))
+        let mut output = String::new();
+        self.to_utf8_writer_pretty(&mut output, value, config)?;
+        Ok(output)
     }
 }

@@ -1,20 +1,18 @@
-use std::io;
-
 use serde::{ser, Serialize};
 
-use super::{Error, Result, Serializer};
+use super::{Error, Result, Serializer, WriteUtf8};
 
-pub struct RawValueSerializer<'a, W: io::Write> {
+pub struct RawValueSerializer<'a, W: WriteUtf8> {
     ser: &'a mut Serializer<W>,
 }
 
-impl<'a, W: io::Write> RawValueSerializer<'a, W> {
+impl<'a, W: WriteUtf8> RawValueSerializer<'a, W> {
     pub fn new(ser: &'a mut Serializer<W>) -> Self {
         Self { ser }
     }
 }
 
-impl<'a, W: io::Write> ser::Serializer for RawValueSerializer<'a, W> {
+impl<'a, W: WriteUtf8> ser::Serializer for RawValueSerializer<'a, W> {
     type Error = Error;
     type Ok = ();
     type SerializeMap = ser::Impossible<(), Error>;
@@ -84,8 +82,7 @@ impl<'a, W: io::Write> ser::Serializer for RawValueSerializer<'a, W> {
     }
 
     fn serialize_str(self, ron: &str) -> Result<()> {
-        self.ser.output.write_all(ron.as_bytes())?;
-        Ok(())
+        self.ser.output.write_str(ron)
     }
 
     fn serialize_bytes(self, _: &[u8]) -> Result<()> {

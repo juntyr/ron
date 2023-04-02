@@ -403,6 +403,12 @@ impl From<io::Error> for Error {
     }
 }
 
+impl From<fmt::Error> for Error {
+    fn from(e: fmt::Error) -> Self {
+        Error::Io(e.to_string())
+    }
+}
+
 impl From<io::Error> for SpannedError {
     fn from(e: io::Error) -> Self {
         SpannedError {
