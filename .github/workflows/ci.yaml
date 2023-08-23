@@ -84,10 +84,11 @@ jobs:
           profile: minimal
           components: llvm-tools-preview
           override: true
-      - name: Install grcov
-        run: grcov --version || cargo install grcov --force
-        env:
-          CARGO_TARGET_DIR: target/
+      - name: Download grcov
+        run: |
+          curl -sL https://github.com/mozilla/grcov/releases/download/v0.8.18/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar jxf -
+          chmod +x ./grcov
+          ./grcov --version
       - name: Generate the coverage data
         run: |
           cargo test --all-targets
@@ -101,7 +102,7 @@ jobs:
           LLVM_PROFILE_FILE: codecov-%p-%m.profraw
       - name: Generate the coverage reports
         run: |
-          grcov . -s . --binary-path ./target/debug/deps \
+          ./grcov . -s . --binary-path ./target/debug/deps \
             -t lcov -o codecov.lcov --branch \
             --keep-only "src/*" \
             --keep-only "tests/*" \
@@ -109,7 +110,7 @@ jobs:
             --excl-line GRCOV_EXCL_LINE \
             --excl-start GRCOV_EXCL_START \
             --excl-stop GRCOV_EXCL_STOP
-          grcov . -s . --binary-path ./target/debug/deps \
+          ./grcov . -s . --binary-path ./target/debug/deps \
             -t html --branch \
             --keep-only "src/*" \
             --keep-only "tests/*" \
