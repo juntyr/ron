@@ -88,6 +88,7 @@ jobs:
         run: cargo install grcov --force
       - name: Generate the coverage data
         run: |
+          cargo clean
           cargo test --all-targets
           cargo test --features integer128 --all-targets
           cargo test --features indexmap --all-targets
