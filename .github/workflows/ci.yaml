@@ -84,11 +84,10 @@ jobs:
           profile: minimal
           components: llvm-tools-preview
           override: true
-      - name: Download grcov
-        run: |
-          mkdir -p "${HOME}/.local/bin"
-          curl -sL https://github.com/mozilla/grcov/releases/download/v0.8.18/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar jxf - -C "${HOME}/.local/bin"
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Install grcov
+        run: grcov --version || cargo install grcov --force
+        env:
+          CARGO_TARGET_DIR: target/
       - name: Generate the coverage data
         run: |
           cargo test --all-targets
