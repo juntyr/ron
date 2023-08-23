@@ -118,30 +118,12 @@ jobs:
             --excl-line GRCOV_EXCL_LINE \
             --excl-start GRCOV_EXCL_START \
             --excl-stop GRCOV_EXCL_STOP
-          ./grcov . -s . --binary-path ./target/debug/deps \
-            -t cobertura -o cobertura.xml --branch \
-            --keep-only "src/*" \
-            --keep-only "tests/*" \
-            --ignore-not-existing \
-            --excl-line GRCOV_EXCL_LINE \
-            --excl-start GRCOV_EXCL_START \
-            --excl-stop GRCOV_EXCL_STOP
           rm -rf html/badges
-      - uses: codecov/codecov-action@v1
+      - name: Upload the coverage report to codecov.io
+        uses: codecov/codecov-action@v1
         with:
+          files: coverage.lcov
           fail_ci_if_error: true
-      - name: Summarise the code coverage
-        uses: 06393993/lcov-reporter-action@master
-        with:
-          title: Code Coverage
-          lcov-file: coverage.lcov
-          post-to: job-summary
-      - name: Upload the code coverage report
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage
-          path: html/
-        if: github.event_name == 'pull_request'
       - name: Deploy the code coverage report
         uses: peaceiris/actions-gh-pages@v3
         with:
